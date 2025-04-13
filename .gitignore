@@ -1,0 +1,22 @@
+# Unity build folders
+[Bb]in/
+[Oo]bj/
+[Pp]lugins/
+/.idea/.idea.MCZombieMod/.idea/.name
+/.idea/.idea.MCZombieMod/.idea/.gitignore
+/.idea/.gitignore
+/.idea/.idea.MCZombieMod/.idea/encodings.xml
+/.idea/.idea.MCZombieMod/.idea/indexLayout.xml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/.idea.MCZombieMod/.idea/vcs.xml
+/.idea/vcs.xml
+/.idea/zombiemod.iml
+AssetBundles/AssetBundles
+AssetBundles/AssetBundles.manifest
+bin/Debug/netstandard2.1/MCZombieMod.dll
+bin/Debug/netstandard2.1/MCZombieMod.pdb
+obj/Debug/netstandard2.1/MCZombieMod.AssemblyInfo.cs
+obj/Debug/netstandard2.1/MCZombieMod.AssemblyInfoInputs.cache
+obj/Debug/netstandard2.1/MCZombieMod.dll
+obj/Debug/netstandard2.1/MCZombieMod.pdb

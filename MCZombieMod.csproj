@@ -1,0 +1,84 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>MCZombieMod</AssemblyName>
+    <Description>MCZombie Mod for REPO</Description>
+    <Version>1.1.0</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <Authors>CarsonJF</Authors>
+    <GameDirectory>A:\SteamLibrary\steamapps\common\REPO</GameDirectory>
+    <BepInExDirectory>D:\Games\Gale\repo\profiles\Test\BepInEx\</BepInExDirectory>
+    <StartArguments>--doorstop-enable true --doorstop-target "$(BepInExDirectory)core\BepInEx.Preloader.dll" --gale-profile Test</StartArguments>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- Add Package Sources -->
+  <PropertyGroup>
+    <RestoreAdditionalProjectSources>
+      https://api.nuget.org/v3/index.json;
+      https://nuget.bepinex.dev/v3/index.json;
+      https://nuget.windows10ce.com/nuget/v3/index.json
+    </RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <!-- Package References -->
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all"/>
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" IncludeAssets="build" />
+    <PackageReference Include="BepInEx.Core" Version="5.*" ExcludeAssets="runtime" />
+    <PackageReference Include="UnityEngine.Modules" Version="2022.3.21" IncludeAssets="compile" PrivateAssets="all"/>
+    <PackageReference Include="R.E.P.O.GameLibs.Steam" Version="*-*" PrivateAssets="all" Publicize="true" />
+    <PackageReference Include="Zehs.REPOLib" Version="2.*" />
+    <PackageReference Include="HarmonyX" Version="2.7.0" />
+    <ProjectReference Include="..\PaintedUtils\PaintedUtils.csproj" Private="false" />
+  </ItemGroup>
+
+  <!-- Create distribution folder with DLL and asset bundle -->
+  <Target Name="CreateDistributionFolder" AfterTargets="Build">
+    <!-- Create the distribution folder name -->
+    <PropertyGroup>
+      <DistributionFolder>D:\Games\Gale\repo\profiles\Test\BepInEx\plugins\$(Authors)-$(AssemblyName)</DistributionFolder>
+      <DevelopmentDistributionFolder>D:\Games\Unity\ModDevelopmentRepo\Assets\REPO\Mods\plugins\$(Authors)-$(AssemblyName)</DevelopmentDistributionFolder>
+    </PropertyGroup>
+
+    <!-- Create the distribution folder -->
+    <MakeDir Directories="$(DistributionFolder)" />
+
+    <!-- Copy the DLL -->
+    <Copy
+      SourceFiles="$(TargetPath)"
+      DestinationFolder="$(DistributionFolder)"
+      SkipUnchangedFiles="true" />
+
+    <!-- Copy the DLL to the development distribution folder -->
+    <Copy
+      SourceFiles="$(TargetPath)"
+      DestinationFolder="$(DevelopmentDistributionFolder)"
+      SkipUnchangedFiles="true" />
+
+    <!-- Copy and rename the asset bundle if it exists (excluding manifest) -->
+    <ItemGroup>
+      <AssetBundleFiles Include="AssetBundles\*.bundle" Exclude="AssetBundles\*.manifest" />
+    </ItemGroup>
+
+    <Copy
+      SourceFiles="@(AssetBundleFiles)"
+      DestinationFiles="@(AssetBundleFiles->'$(DistributionFolder)\$(AssemblyName).bundle')"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="RunGame" DependsOnTargets="Build;CreateDistributionFolder">
+    <Message Text="Starting REPO with BepInEx and Gale profile..." Importance="high" />
+    <Error Condition="!Exists('$(GameDirectory)\REPO.exe')" Text="Game executable not found at $(GameDirectory)\REPO.exe" />
+    <Error Condition="!Exists('$(BepInExDirectory)core\BepInEx.Preloader.dll')" Text="BepInEx Preloader not found at $(BepInExDirectory)core\BepInEx.Preloader.dll" />
+    <Exec Command="&quot;$(GameDirectory)\REPO.exe&quot; --doorstop-enable true --doorstop-target &quot;$(BepInExDirectory)core\BepInEx.Preloader.dll&quot; --gale-profile Test" WorkingDirectory="$(GameDirectory)" />
+  </Target>
+
+  <Target Name="Run" DependsOnTargets="Build;CreateDistributionFolder;RunGame">
+    <Message Text="Build complete and game launched!" Importance="high" />
+  </Target>
+
+</Project>
+

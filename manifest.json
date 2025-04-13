@@ -1,0 +1,10 @@
+﻿{
+    "name": "MCZombieMod",
+    "description": "Adds a MC Zombie to the game.",
+    "version_number": "1.1.0",
+    "dependencies": [
+      "Zehs-REPOLib-2.0.1",
+      "PaintedThornStudios-PaintedUtils-1.0.0"
+    ],
+    "website_url": ""
+  }
