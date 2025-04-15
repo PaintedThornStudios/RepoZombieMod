@@ -12,7 +12,7 @@ using PaintedThornStudios.PaintedUtils;
 namespace MCZombieMod
 {
     [BepInDependency("PaintedThornStudios.PaintedUtils")]
-    [BepInPlugin("CarsonJF.MCZombieMod", "MCZombieMod", "1.1.0")]
+    [BepInPlugin("CarsonJF.MCZombieMod", "MCZombieMod", "1.2.1")]
     [BepInDependency(REPOLib.MyPluginInfo.PLUGIN_GUID, BepInDependency.DependencyFlags.HardDependency)]
     public class MCZombieMod : BaseUnityPlugin
     {

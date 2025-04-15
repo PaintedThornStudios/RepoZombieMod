@@ -34,6 +34,7 @@ namespace MCZombieMod
         public ConfigEntry<int> FleshDropAmountMax { get; private set; }
         public ConfigEntry<bool> CanEatFlesh { get; private set; }
         public ConfigEntry<int> FleshHealAmount { get; private set; }
+        public ConfigEntry<int> GlobalHordeLimit { get; private set; }
 
         public MCZombieConfig(ConfigFile config)
         {
@@ -61,6 +62,7 @@ namespace MCZombieMod
             FleshDropAmountMax = config.Bind("Zombie", "Flesh Drop Amount Max", 3, "Maximum amount of flesh dropped on death");
             CanEatFlesh = config.Bind("Zombie", "Can Eat Flesh", true, "Whether Rotten Flesh is edible");
             FleshHealAmount = config.Bind("Zombie", "Flesh Heal Amount", 10, "Amount of health to heal the player for when eating flesh");
+            GlobalHordeLimit = config.Bind("Zombie", "Global Horde Limit", 10, "Maximum total number of zombies allowed in the game at once");
         }
     }
 } 

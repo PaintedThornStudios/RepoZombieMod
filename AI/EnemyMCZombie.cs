@@ -94,6 +94,11 @@ public class EnemyMCZombie : MonoBehaviour
     public static bool HordeOnHurt { get => _hordeOnHurt; set => _hordeOnHurt = value; }
     public int MaxHordeSpawn { get => _maxHordeSpawn; set => _maxHordeSpawn = value; }
 
+    // Global horde limit
+    private static int _totalZombies = 0;
+    private const int MAX_TOTAL_ZOMBIES = 10; // Maximum total zombies allowed in the game
+    public static int TotalZombies => _totalZombies;
+
     private void Awake()
     {
         _enemy = GetComponent<Enemy>();
@@ -924,6 +929,19 @@ public class EnemyMCZombie : MonoBehaviour
             UpdateState(State.Roam);
         }
 
+        // Add horde spawn logic when HordeOnHurt is true
+        if (HordeOnHurt && SemiFunc.IsMasterClientOrSingleplayer() && 
+            _spawnedZombies < MAX_SPAWNED_ZOMBIES && 
+            _spawnCooldown <= 0f) 
+        {
+            RandomSpawnChance = Random.Range(0f, 100f);
+            if (RandomSpawnChance <= spawnHordeChance) {
+                ZombieHordeSpawn();
+                _spawnCooldown = SPAWN_COOLDOWN_TIME;
+                _spawnedZombies++;
+            }
+        }
+
         if (SemiFunc.IsMultiplayer())
         {
             _photonView.RPC(nameof(RPC_PlayHurt), RpcTarget.All);
@@ -970,6 +988,9 @@ public class EnemyMCZombie : MonoBehaviour
     public void ZombieHordeSpawn() {
         if (!SemiFunc.IsMasterClientOrSingleplayer()) return; // Only spawn on host/master client
         
+        // Check if we've reached the global limit
+        if (_totalZombies >= MAX_TOTAL_ZOMBIES) return;
+        
         var enemy = REPOLib.Modules.Enemies.GetEnemyByName("mczombie");
             
         var spawnPosition = _lastSeenPlayerPosition + Random.insideUnitSphere * 3f;
@@ -985,6 +1006,7 @@ public class EnemyMCZombie : MonoBehaviour
             {
                 REPOLib.Modules.Enemies.SpawnEnemy(enemy, hit.position, _enemy.transform.rotation, false);
             }
+            _totalZombies++; // Increment total zombie count
         }
     }
 
@@ -993,6 +1015,7 @@ public class EnemyMCZombie : MonoBehaviour
     {
         var enemy = REPOLib.Modules.Enemies.GetEnemyByName("mczombie");
         REPOLib.Modules.Enemies.SpawnEnemy(enemy, position, rotation, false);
+        _totalZombies++; // Increment total zombie count
     }
 
     // Called when the mob dies
@@ -1021,6 +1044,7 @@ public class EnemyMCZombie : MonoBehaviour
                 _spawnedZombies++;
             }
         }
+        _totalZombies--; // Decrement total zombie count when a zombie dies
     }
 
     // Called when the mob is stunned

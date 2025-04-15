@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.1] - 2025-04-15
+### Global Limit
+- added a global limit to zombie spawns. configurable, defaults to 10
+- fixed issue with "horde on hurt by anything"
+
+## [1.2.0] - 2025-04-15
+### Animation Fix
+- fixed animation sync across multiple clients
+- fixed targeting across multiple clients
+- fixed issues involving rotten flesh not being removed when eaten from all clients
+- disabled sick effect on rotten flesh. may return in future
+
 ## [1.1.0] - 2025-04-12
 ### Horde Logic Update
 - Adjusted Horde spawning logic to only have a chance on death or when hurt by an object the player is holding. Items do not trigger this, only valueables.
