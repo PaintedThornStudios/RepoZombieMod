@@ -27,6 +27,7 @@ public class EnemyMCZombie : MonoBehaviour
     private Enemy _enemy;
     public Enemy Enemy => _enemy;
     private PhotonView _photonView;
+    public PhotonView PhotonView => _photonView;
     public PlayerAvatar _targetPlayer;
 
     private EnemyNavMeshAgent _navMeshAgent => EnemyReflectionUtil.GetEnemyNavMeshAgent(_enemy);
@@ -139,9 +140,6 @@ public class EnemyMCZombie : MonoBehaviour
                 priorityField.SetValue(_navMeshAgent, Random.Range(0, 100));
             }
         }
-
-
-
     }
 
     private void OnDestroy()
@@ -155,19 +153,12 @@ public class EnemyMCZombie : MonoBehaviour
         _attackWindowOpen = false;
         if (SemiFunc.IsMultiplayer())
         {
-            _photonView.RPC(nameof(OnPlayerHitRPC), RpcTarget.All);
+            _photonView.RPC(nameof(RPC_PlayPlayerHit), RpcTarget.All);
         }
         else
         {
-            OnPlayerHitRPC();
+            animator.PlayPlayerHitSound();
         }
-    }
-
-    [PunRPC]
-    private void OnPlayerHitRPC()
-    {
-        _unsuccessfulAttackCount = 0;
-        _attackWindowOpen = false;
     }
 
     private void Update()
@@ -218,6 +209,39 @@ public class EnemyMCZombie : MonoBehaviour
             {
                 _spawnCooldown -= Time.deltaTime;
             }
+
+            // Handle animation parameter syncing
+            if (!_enemy.IsStunned())
+            {
+                Vector3 velocity = EnemyReflectionUtil.GetAgentVelocity(_navMeshAgent);
+                float speed = velocity.magnitude;
+
+                float targetWalkingValue = (speed / 2f) + 1f;
+                float currentWalkingValue = animator.animator.GetFloat("Walking");
+                float newWalkingValue = Mathf.MoveTowards(currentWalkingValue, targetWalkingValue, Time.deltaTime * 10f);
+
+                if (Mathf.Abs(currentWalkingValue - newWalkingValue) > 0.01f)
+                {
+                    if (SemiFunc.IsMultiplayer())
+                    {
+                        _photonView.RPC(nameof(RPC_SetFloat), RpcTarget.All, "Walking", newWalkingValue);
+                    }
+                    else
+                    {
+                        animator.animator.SetFloat("Walking", newWalkingValue);
+                    }
+                }
+
+                bool isMoving = speed > 0.1f;
+                if (SemiFunc.IsMultiplayer())
+                {
+                    _photonView.RPC(nameof(RPC_SetBool), RpcTarget.All, "isWalking", isMoving);
+                }
+                else
+                {
+                    animator.animator.SetBool("isWalking", isMoving);
+                }
+            }
         }
 
         // Synchronize position with other clients
@@ -251,6 +275,7 @@ public class EnemyMCZombie : MonoBehaviour
     private void UpdateStateRPC(State _state)
     {
         currentState = _state;
+        // Debug.Log("State -> " + currentState);
     }
 
     [PunRPC]
@@ -428,7 +453,14 @@ public class EnemyMCZombie : MonoBehaviour
 
         if (_ambientImpulse) {
             _ambientImpulse = false;
-            animator.PlayRoamSound();
+            if (SemiFunc.IsMultiplayer())
+            {
+                _photonView.RPC(nameof(RPC_PlayRoam), RpcTarget.All);
+            }
+            else
+            {
+                animator.PlayRoamSound();
+            }
             _ambientTimer = Random.Range(15f, 20f);
         }
     }
@@ -462,7 +494,14 @@ public class EnemyMCZombie : MonoBehaviour
         
         if (_ambientImpulse) {
             _ambientImpulse = false;
-            animator.PlayCuriousSound();
+            if (SemiFunc.IsMultiplayer())
+            {
+                _photonView.RPC(nameof(RPC_PlayCurious), RpcTarget.All);
+            }
+            else
+            {
+                animator.PlayCuriousSound();
+            }
             _ambientTimer = Random.Range(15f, 20f);
         }
 
@@ -486,7 +525,14 @@ public class EnemyMCZombie : MonoBehaviour
         if (!_targetPlayer || EnemyReflectionUtil.IsPlayerDisabled(_targetPlayer))
         {
             _lastSeenPlayerPosition = _targetPlayer ? _targetPlayer.transform.position : _lastSeenPlayerPosition;
-            animator.PlayLookForPlayerSound();
+            if (SemiFunc.IsMultiplayer())
+            {
+                _photonView.RPC(nameof(RPC_PlayLookForPlayer), RpcTarget.All);
+            }
+            else
+            {
+                animator.PlayLookForPlayerSound();
+            }
             UpdateState(State.LookForPlayer);
             return;
         }
@@ -559,7 +605,14 @@ public class EnemyMCZombie : MonoBehaviour
 
         if (_ambientImpulse) {
             _ambientImpulse = false;
-            animator.PlayChasePlayerSound();
+            if (SemiFunc.IsMultiplayer())
+            {
+                _photonView.RPC(nameof(RPC_PlayChasePlayer), RpcTarget.All);
+            }
+            else
+            {
+                animator.PlayChasePlayerSound();
+            }
             _ambientTimer = Random.Range(15f, 20f);
         }
     }
@@ -603,7 +656,14 @@ public class EnemyMCZombie : MonoBehaviour
 
         if (_ambientImpulse) {
             _ambientImpulse = false;
-            animator.PlayVisionSound();
+            if (SemiFunc.IsMultiplayer())
+            {
+                _photonView.RPC(nameof(RPC_PlayVision), RpcTarget.All);
+            }
+            else
+            {
+                animator.PlayVisionSound();
+            }
             _ambientTimer = Random.Range(15f, 20f);
         }
     }
@@ -617,11 +677,12 @@ public class EnemyMCZombie : MonoBehaviour
             _attackWindowTimer = 2.6f;
             if (SemiFunc.IsMultiplayer())
             {
-                _photonView.RPC(nameof(PlayAttackEffectsRPC), RpcTarget.All);
+                _photonView.RPC(nameof(RPC_PlayAttack), RpcTarget.All);
             }
             else
             {
-                PlayAttackEffectsRPC();
+                animator.AttackPlayer();
+                animator.PlayAttackSound();
             }
             _navMeshAgent.ResetPath(); // Freeze movement
         }
@@ -653,11 +714,12 @@ public class EnemyMCZombie : MonoBehaviour
                     {
                         if (SemiFunc.IsMultiplayer())
                         {
-                            _photonView.RPC(nameof(TriggerAttackRPC), RpcTarget.All);
+                            _photonView.RPC(nameof(RPC_PlayAttack), RpcTarget.All);
                         }
                         else
                         {
-                            TriggerAttackRPC();
+                            animator.AttackPlayer();
+                            animator.PlayAttackSound();
                         }
                     }
                 }
@@ -759,7 +821,14 @@ public class EnemyMCZombie : MonoBehaviour
         if (_ambientImpulse)
         {
             _ambientImpulse = false;
-            animator.PlayRoamSound();
+            if (SemiFunc.IsMultiplayer())
+            {
+                _photonView.RPC(nameof(RPC_PlayRoam), RpcTarget.All);
+            }
+            else
+            {
+                animator.PlayRoamSound();
+            }
             _ambientTimer = Random.Range(15f, 20f);
         }
     }
@@ -788,19 +857,24 @@ public class EnemyMCZombie : MonoBehaviour
             UpdateState(State.Spawn);
             if (SemiFunc.IsMultiplayer())
             {
-                _photonView.RPC(nameof(PlaySpawnEffectsRPC), RpcTarget.All);
+                _photonView.RPC(nameof(RPC_SetTrigger), RpcTarget.All, "Spawn");
+                _photonView.RPC(nameof(RPC_PlaySpawn), RpcTarget.All);
+                _photonView.RPC(nameof(RPC_PlaySpawnParticles), RpcTarget.All);
             }
             else
             {
-                PlaySpawnEffectsRPC();
+                animator.animator.SetTrigger("Spawn");
+                animator.PlaySpawnSound();
+                animator.SpawnParticlesImpulse();
             }
         }
     }
 
+
     [PunRPC]
     private void PlaySpawnEffectsRPC()
     {
-        animator.animator.SetTrigger("Spawn");
+        _photonView.RPC("RPC_SetTrigger", RpcTarget.All, "Attack");
         animator.SpawnParticlesImpulse();
         animator.PlaySpawnSound();
     }
@@ -843,20 +917,21 @@ public class EnemyMCZombie : MonoBehaviour
     // Called when the mob is damaged
     public void OnHurt() {
         _hurtImpulse = true;
-        _unsuccessfulAttackCount = 0;  // Reset counter when player is hurt
-        _currentInterest -= _hurtInterestLoss;  // Lose interest when hurt
+        _unsuccessfulAttackCount = 0;
+        _currentInterest -= _hurtInterestLoss;
         if (_currentInterest <= 0f)
         {
-            UpdateState(State.Roam);  // Give up and go back to roaming
+            UpdateState(State.Roam);
         }
 
         if (SemiFunc.IsMultiplayer())
         {
-            _photonView.RPC(nameof(PlayHurtEffectsRPC), RpcTarget.All);
+            _photonView.RPC(nameof(RPC_PlayHurt), RpcTarget.All);
         }
         else
         {
-            PlayHurtEffectsRPC();
+            animator.PlayHurtSound();
+            animator.HurtParticlesImpulse();
         }
     }
 
@@ -923,15 +998,24 @@ public class EnemyMCZombie : MonoBehaviour
     // Called when the mob dies
     public void OnDeath() {
         _deathImpulse = true;
-        animator.PlayDeathSound();
-        animator.DeathParticlesImpulse();
+        if (SemiFunc.IsMultiplayer())
+        {
+            _photonView.RPC(nameof(RPC_PlayDeath), RpcTarget.All);
+        }
+        else
+        {
+            animator.PlayDeathSound();
+            animator.DeathParticlesImpulse();
+        }
         GameDirector.instance.CameraShake.ShakeDistance(3f, 3f, 10f, base.transform.position, 0.5f);
         GameDirector.instance.CameraImpact.ShakeDistance(3f, 3f, 10f, base.transform.position, 0.05f);
         
-        if (SemiFunc.IsMasterClientOrSingleplayer()) {
+        if (SemiFunc.IsMasterClientOrSingleplayer())
+        {
             _enemyParent.Despawn();
             RandomSpawnChance = Random.Range(0f, 100f);
-            if (_spawnCooldown <= 0f && RandomSpawnChance <= spawnHordeChance && _spawnedZombies < MAX_SPAWNED_ZOMBIES) {
+            if (_spawnCooldown <= 0f && RandomSpawnChance <= spawnHordeChance && _spawnedZombies < MAX_SPAWNED_ZOMBIES)
+            {
                 ZombieHordeSpawn();
                 _spawnCooldown = SPAWN_COOLDOWN_TIME;
                 _spawnedZombies++;
@@ -941,12 +1025,26 @@ public class EnemyMCZombie : MonoBehaviour
 
     // Called when the mob is stunned
     public void OnStun() {
-        animator.OnStun();
+        if (SemiFunc.IsMultiplayer())
+        {
+            _photonView.RPC(nameof(RPC_PlayStunned), RpcTarget.All);
+        }
+        else
+        {
+            animator.OnStun();
+        }
     }
 
     // Called when the mob becomes unstunned
     public void OnUnstun() {
-        animator.OnUnstun();
+        if (SemiFunc.IsMultiplayer())
+        {
+            _photonView.RPC(nameof(RPC_PlayUnstunned), RpcTarget.All);
+        }
+        else
+        {
+            animator.OnUnstun();
+        }
     }
 
     // Called when the mob is grabbed
@@ -1011,6 +1109,123 @@ public class EnemyMCZombie : MonoBehaviour
     [PunRPC]
     private void TriggerAttackRPC()
     {
+        _photonView.RPC("RPC_SetTrigger", RpcTarget.All, "Attack");
+
+    }
+    [PunRPC]
+    public void RPC_SetTrigger(string trigger) => animator.animator.SetTrigger(trigger);
+
+    [PunRPC]
+    public void RPC_SetBool(string param, bool value) => animator.animator.SetBool(param, value);
+
+    [PunRPC]
+    public void RPC_SetFloat(string param, float value) => animator.animator.SetFloat(param, value);
+
+    [PunRPC]
+    public void RPC_PlayAttack()
+    {
         animator.animator.SetTrigger("Attack");
+        animator.attackSounds.Play(Enemy.CenterTransform.position);
+    }
+
+    [PunRPC]
+    public void RPC_PlayHurt()
+    {
+        animator.hurtSounds.Play(Enemy.CenterTransform.position);
+        foreach (var particle in animator.hurtParticles)
+        {
+            particle.gameObject.SetActive(true);
+            particle.Play();
+        }
+    }
+
+    [PunRPC]
+    public void RPC_PlayDeath()
+    {
+        animator.deathSounds.Play(Enemy.CenterTransform.position);
+        foreach (var particle in animator.deathParticles)
+        {
+            particle.gameObject.SetActive(true);
+            particle.Play();
+        }
+    }
+
+    [PunRPC]
+    public void RPC_PlaySpawn()
+    {
+        animator.spawnSounds.Play(Enemy.CenterTransform.position);
+        foreach (var particle in animator.spawnParticles)
+        {
+            particle.gameObject.SetActive(true);
+            particle.Play();
+        }
+    }
+
+    [PunRPC]
+    public void RPC_SetDespawn() => EnemyReflectionUtil.GetEnemyParent(Enemy).Despawn();
+
+    [PunRPC]
+    public void RPC_PlayRoam() => animator.roamSounds.Play(Enemy.CenterTransform.position);
+
+    [PunRPC]
+    public void RPC_PlayVision() => animator.visionSounds.Play(Enemy.CenterTransform.position);
+
+    [PunRPC]
+    public void RPC_PlayCurious() => animator.curiousSounds.Play(Enemy.CenterTransform.position);
+
+    [PunRPC]
+    public void RPC_PlayLookForPlayer() => animator.lookForPlayerSounds.Play(Enemy.CenterTransform.position);
+
+    [PunRPC]
+    public void RPC_PlayChasePlayer() => animator.chasePlayerSounds.Play(Enemy.CenterTransform.position);
+
+    [PunRPC]
+    public void RPC_PlayPlayerHit() => animator.playerHitSounds.Play(Enemy.CenterTransform.position);
+
+    [PunRPC]
+    public void RPC_PlayStunned()
+    {
+        animator.animator.SetBool("isStunned", true);
+        animator.stunnedSounds.Play(Enemy.CenterTransform.position);
+    }
+
+    [PunRPC]
+    public void RPC_PlayUnstunned()
+    {
+        animator.animator.SetBool("isStunned", false);
+        animator.unstunnedSounds.Play(Enemy.CenterTransform.position);
+    }
+
+    [PunRPC]
+    public void RPC_PlayFootstep() => animator.footstepSounds.Play(Enemy.CenterTransform.position);
+
+    [PunRPC]
+    public void RPC_PlayDeathParticles()
+    {
+        foreach (var particle in animator.deathParticles)
+        {
+            particle.gameObject.SetActive(true);
+            particle.Play();
+        }
+    }
+
+    [PunRPC]
+    public void RPC_PlayHurtParticles()
+    {
+        foreach (var particle in animator.hurtParticles)
+        {
+            particle.gameObject.SetActive(true);
+            particle.Play();
+        }
+    }
+
+    [PunRPC]
+    public void RPC_PlaySpawnParticles()
+    {
+        foreach (var particle in animator.spawnParticles)
+        {
+            particle.gameObject.SetActive(true);
+            particle.Play();
+        }
     }
 }

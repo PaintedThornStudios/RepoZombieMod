@@ -4,7 +4,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.Animations;
 using PaintedThornStudios.PaintedUtils;
-
+using Photon.Pun;
 namespace MCZombieMod.AI;
 
 public class EnemyMCZombieAnim : MonoBehaviour
@@ -33,27 +33,25 @@ public class EnemyMCZombieAnim : MonoBehaviour
     public HurtCollider hurtCollider;
     public Rigidbody rigidbody;
 
-
     [Header("Particles")]
     public ParticleSystem[] hurtParticles;
     public ParticleSystem[] deathParticles;
     public ParticleSystem[] spawnParticles;
 
     [Header("Sounds")]
-    [SerializeField] private Sound roamSounds;
-    [SerializeField] private Sound curiousSounds;
-    [SerializeField] private Sound visionSounds;
-    [SerializeField] private Sound hurtSounds;
-    [SerializeField] private Sound deathSounds;
-    [SerializeField] private Sound attackSounds;
-    [SerializeField] private Sound lookForPlayerSounds;
-    [SerializeField] private Sound chasePlayerSounds;
-    [SerializeField] private Sound stunnedSounds;
-    [SerializeField] private Sound unstunnedSounds;
-    [SerializeField] private Sound footstepSounds;
-    [SerializeField] private Sound spawnSounds;
-    [SerializeField] private Sound playerHitSounds;
-
+    public Sound roamSounds;
+    public Sound curiousSounds;
+    public Sound visionSounds;
+    public Sound hurtSounds;
+    public Sound deathSounds;
+    public Sound attackSounds;
+    public Sound lookForPlayerSounds;
+    public Sound chasePlayerSounds;
+    public Sound stunnedSounds;
+    public Sound unstunnedSounds;
+    public Sound footstepSounds;
+    public Sound spawnSounds;
+    public Sound playerHitSounds;
 
     [Header("Constraints")]
     public ParentConstraint parentConstraint;    
@@ -97,23 +95,6 @@ public class EnemyMCZombieAnim : MonoBehaviour
         {
             controller.DeathImpulse = false;
             animator.SetTrigger("Death");
-        }
-
-        if (!controller.Enemy.IsStunned())
-        {
-            Vector3 velocity = EnemyReflectionUtil.GetAgentVelocity(EnemyReflectionUtil.GetEnemyNavMeshAgent(controller.Enemy));
-            float speed = velocity.magnitude;
-            
-            // More responsive walking animation
-            float targetWalkingValue = (speed / 2f) + 1f;
-            float currentWalkingValue = animator.GetFloat("Walking");
-            float newWalkingValue = Mathf.MoveTowards(currentWalkingValue, targetWalkingValue, Time.deltaTime * 10f);
-            animator.SetFloat("Walking", newWalkingValue);
-            
-            // Only set walking state if actually moving
-            bool isMoving = speed > 0.1f;
-            animator.SetBool("isWalking", isMoving);
-
         }
     }
 
@@ -204,7 +185,6 @@ public class EnemyMCZombieAnim : MonoBehaviour
         playerHitSounds.Play(controller.Enemy.CenterTransform.position);
     }
 
-    // Called by animation events when foot hits ground
     public void OnFootstep()
     {
         footstepSounds.Play(controller.Enemy.CenterTransform.position);
