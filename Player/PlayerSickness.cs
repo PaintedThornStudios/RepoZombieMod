@@ -22,8 +22,12 @@ public class PlayerSickness : MonoBehaviourPun
     private void Awake()
     {
         if (playerAvatar == null)
-            playerAvatar = GetComponent<PlayerAvatar>();
+            playerAvatar = GetComponentInParent<PlayerAvatar>();
+
+        if (playerAvatar == null)
+            Debug.LogWarning("[SICKNESS] PlayerAvatar not found on self or parent.");
     }
+
     private PhotonView GetAvatarView()
     {
         return playerAvatar != null ? playerAvatar.GetComponentInChildren<PhotonView>() : null;
@@ -65,20 +69,6 @@ public class PlayerSickness : MonoBehaviourPun
         sickTimer = sicknessDuration + Random.Range(-10f, 10f);
         nextPukeTime = Random.Range(2f, 5f);
         Debug.Log($"[SICKNESS] Local sickness started: {sickTimer:F1}s");
-    }
-
-
-    [PunRPC]
-    private void RPC_BeginSickness()
-    {
-        if (!isSick)
-        {
-            isSick = true;
-            float randomVariation = Random.Range(-10f, 10f);
-            sickTimer = sicknessDuration + randomVariation;
-            nextPukeTime = Random.Range(2f, 5f);
-            Debug.Log($"Got sick! Will be sick for {sickTimer:F1} seconds. First puke in {nextPukeTime:F1} seconds");
-        }
     }
 
     void Update()
@@ -151,4 +141,34 @@ public class PlayerSickness : MonoBehaviourPun
     }
 
     public bool IsSick() => isSick;
+
+    [PunRPC]
+    public void RPC_BeginSickness()
+    {
+        if (!isSick)
+        {
+            isSick = true;
+            float randomVariation = Random.Range(-10f, 10f);
+            sickTimer = sicknessDuration + randomVariation;
+            nextPukeTime = Random.Range(2f, 5f);
+            Debug.Log($"Got sick! Will be sick for {sickTimer:F1} seconds. First puke in {nextPukeTime:F1} seconds");
+        }
+    }
+
+    [PunRPC]
+    public void RPC_EnsureSicknessOnTarget()
+    {
+        if (GetComponent<PlayerSickness>() == null)
+        {
+            var avatar = GetComponentInParent<PlayerAvatar>();
+            if (avatar != null)
+            {
+                var sickness = gameObject.AddComponent<PlayerSickness>();
+                sickness.AssignPlayerAvatar(avatar);
+                Debug.Log("[SICKNESS] RPC-added PlayerSickness to: " + avatar.playerName);
+            }
+        }
+    }
+
+
 }

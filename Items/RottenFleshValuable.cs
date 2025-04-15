@@ -58,8 +58,30 @@ namespace MCZombieMod.Items
             Debug.Log("Eating flesh for " + avatar.playerName);
 
             playerAvatar = avatar;
+
+            // Ensure the sickness component is added to the object that owns the PhotonView
+            var photonViewHolder = playerAvatar.GetComponentInChildren<PhotonView>()?.gameObject;
+            PlayerSickness sickness = null;
+
+            if (photonViewHolder != null)
+            {
+                sickness = photonViewHolder.GetComponent<PlayerSickness>();
+                if (sickness == null)
+                {
+                    sickness = photonViewHolder.AddComponent<PlayerSickness>();
+                    sickness.AssignPlayerAvatar(playerAvatar);
+                    Debug.Log("[SICKNESS] Added and assigned PlayerSickness to " + photonViewHolder.name);
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[SICKNESS] Failed to find PhotonView holder to attach sickness!");
+            }
+
+
             StartCoroutine(StartSicknessAfterEffects());
         }
+
 
         private IEnumerator StartSicknessAfterEffects()
         {
@@ -81,6 +103,24 @@ namespace MCZombieMod.Items
                 Debug.Log("Healed local player " + playerAvatar.playerName + " for " + fleshHealAmount + " health");
                 playerAvatar.playerHealth.HealOther(fleshHealAmount, true); // HealOther is better for visual effect
                 playerAvatar.HealedOther();
+                // var sicknessView = playerAvatar.GetComponentInChildren<PhotonView>();
+                // if (sicknessView != null)
+                // {
+                //     // Tell all clients to add PlayerSickness to the same object
+                //     sicknessView.RPC("RPC_EnsureSicknessOnTarget", RpcTarget.AllBuffered);
+                // }
+
+                // var sickness = sicknessView.GetComponent<PlayerSickness>();
+                // if (sickness != null)
+                // {
+                //     sickness.BeginSickness();
+                //     Debug.Log("[SICKNESS] Local sickness started for " + playerAvatar.playerName);
+                // }
+
+                //     else
+                //     {
+                //         Debug.LogWarning("[SICKNESS] PlayerSickness component not found or added.");
+                //     }
                 
                 PhotonView pview = GetComponent<PhotonView>();
                 if (PhotonNetwork.IsConnected && pview != null && pview.IsMine)
@@ -118,5 +158,6 @@ namespace MCZombieMod.Items
         {
             Destroy(gameObject);
         }
+
     }
 }
